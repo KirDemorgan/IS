@@ -46,10 +46,14 @@ class SimpleThresholdClassifier(BaseEstimator, ClassifierMixin):
         self.classes_ = np.unique(y)
 
         best_accuracy = 0
-        best_t1, best_t2 = 2.5, 4.8
+        best_t1, best_t2 = -1.0, 0.5
 
-        for t1 in np.arange(1.0, 4.0, 0.1):
-            for t2 in np.arange(t1 + 0.5, 7.0, 0.1):
+        pl_min = petal_length.min()
+        pl_max = petal_length.max()
+        step = (pl_max - pl_min) / 60
+
+        for t1 in np.arange(pl_min, pl_max, step):
+            for t2 in np.arange(t1 + step, pl_max + step, step):
                 preds = np.where(petal_length < t1, 0,
                          np.where(petal_length < t2, 1, 2))
                 acc = np.mean(preds == y)
@@ -108,15 +112,15 @@ def main():
     # Модель 1: собственная реализация (пороговый классификатор по petal length)
     print("Модель 1: Пороговый классификатор (собственная реализация)")
     model_simple = SimpleThresholdClassifier()
-    model_simple.fit(X_train, y_train)
-    print(f"  Пороги: petal_length < {model_simple.threshold_1_:.1f} → setosa | "
-          f"< {model_simple.threshold_2_:.1f} → versicolor | иначе → virginica")
+    model_simple.fit(X_train_scaled, y_train)
+    print(f"  Пороги: petal_length < {model_simple.threshold_1_:.3f} → setosa | "
+          f"< {model_simple.threshold_2_:.3f} → versicolor | иначе → virginica")
 
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    scores_simple = cross_val_score(model_simple, X_train, y_train, cv=cv, scoring='accuracy')
+    scores_simple = cross_val_score(model_simple, X_train_scaled, y_train, cv=cv, scoring='accuracy')
     print(f"  Кросс-валидация (5-Fold): Accuracy = {scores_simple.mean():.4f} ± {scores_simple.std():.4f}")
 
-    y_pred_simple = model_simple.predict(X_test)
+    y_pred_simple = model_simple.predict(X_test_scaled)
     print(f"\n  Classification Report (тест):")
     print(classification_report(y_test, y_pred_simple, target_names=CLASS_NAMES, digits=4))
 
